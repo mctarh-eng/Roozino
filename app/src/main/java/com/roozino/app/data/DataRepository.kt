@@ -42,7 +42,7 @@ object DataRepository {
         db.noteDao().createdBetween(from, to)
 
     suspend fun allTasks(): List<TaskEntity> = db.taskDao().all()
-    suspend fun allNotes(): List<NoteEntity> = db.noteDao().all()
+    suspend fun allNotesList(): List<NoteEntity> = db.noteDao().all()
 
     // ---------- کارها ----------
 

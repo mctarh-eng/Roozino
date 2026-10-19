@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.roozino.app.ui
 
 import androidx.compose.foundation.background
@@ -13,9 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ChevronLeft
-import androidx.compose.material.icons.automirrored.filled.ChevronRight
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
@@ -288,7 +290,7 @@ fun JalaliMonthGrid(
         ) {
             IconButton(onClick = onPrev) {
                 Icon(
-                    Icons.AutoMirrored.Filled.ChevronRight,
+                    Icons.Filled.ChevronRight,
                     contentDescription = stringResource(R.string.previous)
                 )
             }
@@ -300,7 +302,7 @@ fun JalaliMonthGrid(
             )
             IconButton(onClick = onNext) {
                 Icon(
-                    Icons.AutoMirrored.Filled.ChevronLeft,
+                    Icons.Filled.ChevronLeft,
                     contentDescription = stringResource(R.string.next)
                 )
             }

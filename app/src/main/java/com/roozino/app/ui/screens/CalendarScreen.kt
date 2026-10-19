@@ -157,17 +157,17 @@ fun CalendarScreen() {
         item { SectionTitle(stringResource(R.string.calendar_day_items)) }
 
         val month = data
-        if (month == null || selectedDay == null) {
+        val selected = selectedDay
+        if (month == null || selected == null) {
             item { EmptyState(stringResource(R.string.calendar_no_items)) }
         } else {
-            val isoDate = Jalali.toGregorian(ym.first, ym.second, selectedDay).toString()
+            val isoDate = Jalali.toGregorian(ym.first, ym.second, selected).toString()
             val dayTasks = month.tasks.filter { it.dueDate == isoDate }
             val zone = ZoneId.systemDefault()
             val dayNotes = month.notes.filter { n ->
                 val d = Instant.ofEpochMilli(n.createdAt).atZone(zone).toLocalDate()
-                Jalali.fromGregorian(d).day == selectedDay &&
-                    Jalali.fromGregorian(d).month == ym.second &&
-                    Jalali.fromGregorian(d).year == ym.first
+                val j = Jalali.fromGregorian(d)
+                j.day == selected && j.month == ym.second && j.year == ym.first
             }
             if (dayTasks.isEmpty() && dayNotes.isEmpty()) {
                 item { EmptyState(stringResource(R.string.calendar_no_items)) }

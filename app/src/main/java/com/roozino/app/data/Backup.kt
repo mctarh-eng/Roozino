@@ -17,7 +17,7 @@ object BackupManager {
 
     suspend fun buildJson(): String {
         val tasks = DataRepository.allTasks()
-        val notes = DataRepository.allNotes()
+        val notes = DataRepository.allNotesList()
         val root = JSONObject()
         root.put("app", "roozino")
         root.put("version", 1)
@@ -69,7 +69,8 @@ object BackupManager {
     }
 
     /** اعتبارسنجی و تبدیل JSON پشتیبان؛ ناموفق → null */
-    fun parse(json: String): Pair<List<TaskEntity>, List<NoteEntity>>? = try {
+    fun parse(json: String): Pair<List<TaskEntity>, List<NoteEntity>>? {
+        return try {
         val root = JSONObject(json)
         if (root.optString("app") != "roozino") return null
         val version = root.optInt("version", -1)
@@ -116,7 +117,8 @@ object BackupManager {
             )
         }
         tasks to notes
-    } catch (_: Exception) {
-        null
+        } catch (_: Exception) {
+            null
+        }
     }
 }
