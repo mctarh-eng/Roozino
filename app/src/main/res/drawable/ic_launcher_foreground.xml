@@ -1,14 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- خورشید روزینو: دایره مرکزی + پرتوها -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,54 m-15,0 a15,15 0 1,1 30,0 a15,15 0 1,1 -30,0" />
+        android:pathData="M38,54 a16,16 0 1,0 32,0 a16,16 0 1,0 -32,0 z"
+        android:fillColor="#FFFFFF" />
     <path
+        android:pathData="M54,30 L54,39 M54,69 L54,78 M30,54 L39,54 M69,54 L78,54 M37.3,37.3 L43.8,43.8 M64.2,64.2 L70.7,70.7 M70.7,37.3 L64.2,43.8 M43.8,64.2 L37.3,70.7"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="5"
-        android:strokeLineCap="round"
-        android:pathData="M54,27 L54,34 M54,74 L54,81 M27,54 L34,54 M74,54 L81,54 M35.1,35.1 L40.2,40.2 M67.8,67.8 L72.9,72.9 M72.9,35.1 L67.8,40.2 M40.2,67.8 L35.1,72.9" />
+        android:strokeLineCap="round" />
 </vector>

@@ -1,31 +1,15 @@
 package com.roozino.app.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Unarchive
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,183 +17,151 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.roozino.app.AppViewModel
-import com.roozino.app.UiSettings
-import com.roozino.app.data.Task
-import com.roozino.app.ui.components.EmptyHint
-import com.roozino.app.ui.components.MainScaffold
-import com.roozino.app.ui.components.TaskRow
-import com.roozino.app.util.Fa
-import com.roozino.app.util.TimeMath
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.roozino.app.R
+import com.roozino.app.data.DataRepository
+import com.roozino.app.data.TaskEntity
+import com.roozino.app.ui.AddEditTaskDialog
+import com.roozino.app.ui.ConfirmDialog
+import com.roozino.app.ui.EmptyState
+import com.roozino.app.ui.SectionTitle
+import com.roozino.app.ui.TaskRow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
 
-@Composable
-fun TasksScreen(vm: AppViewModel, settings: UiSettings, nav: NavController) {
-    val tasks by vm.tasks.collectAsState()
-    var filter by rememberSaveable { mutableStateOf("all") }
-    var menuFor by remember { mutableStateOf<Task?>(null) }
+class TasksViewModel : ViewModel() {
+    val active: StateFlow<List<TaskEntity>> =
+        DataRepository.activeTasks()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val persian = settings.persianDigits
-    val todayStart = remember { TimeMath.startOfDay(System.currentTimeMillis()) }
+    val done: StateFlow<List<TaskEntity>> =
+        DataRepository.doneTasks()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val all = tasks
-    val active = all.filter { !it.deleted }
-    val list = when (filter) {
-        "today" -> active.filter {
-            !it.archived && it.dueMillis != null &&
-                    it.dueMillis!! >= todayStart && it.dueMillis!! < todayStart + TimeMath.DAY_MILLIS
+    fun add(title: String, date: LocalDate?, time: LocalTime?, reminder: Boolean) =
+        viewModelScope.launch {
+            DataRepository.addTask(title, date, time, reminder)
         }
-        "done" -> active.filter { !it.archived && it.isDone }
-        "archived" -> active.filter { it.archived }
-        "trash" -> all.filter { it.deleted }
-        else -> active.filter { !it.archived }
-    }.sortedWith(
-        compareBy<Task> { it.isDone }
-            .thenBy { it.dueMillis ?: Long.MAX_VALUE }
-            .thenByDescending { it.priority }
-            .thenByDescending { it.updatedAt }
-    )
 
-    MainScaffold(
-        title = "کارها",
-        selectedRoute = "tasks",
-        nav = nav,
-        topActions = {
-            IconButton(onClick = { nav.navigate("search") }) {
-                Icon(Icons.Filled.Search, contentDescription = "جست‌وجو")
-            }
-        },
-        fab = {
-            ExtendedFloatingActionButton(
-                onClick = { nav.navigate("taskEdit/-1") },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("کار جدید") }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                listOf(
-                    "all" to "همه",
-                    "today" to "امروز",
-                    "done" to "انجام‌شده",
-                    "archived" to "بایگانی",
-                    "trash" to "سطل بازیافت"
-                ).forEach { (key, label) ->
-                    FilterChip(
-                        selected = filter == key,
-                        onClick = { filter = key },
-                        label = { Text(label) }
-                    )
-                }
-            }
+    fun update(task: TaskEntity) = viewModelScope.launch { DataRepository.updateTask(task) }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp)
-            ) {
-                if (list.isEmpty()) {
-                    EmptyHint(
-                        when (filter) {
-                            "today" -> "برای امروز کاری نداری."
-                            "done" -> "هنوز کاری را کامل نکرده‌ای."
-                            "archived" -> "بایگانی خالی است."
-                            "trash" -> "سطل بازیافت خالی است."
-                            else -> "هنوز کاری ثبت نکرده‌ای — با دکمه «کار جدید» شروع کن."
-                        }
-                    )
-                }
-                list.forEach { t ->
-                    val overdue = !t.isDone && t.dueMillis != null && t.dueMillis!! < todayStart
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TaskRow(
-                            task = t,
-                            persian = persian,
-                            onToggle = { if (t.isDone) vm.reopenTask(t) else vm.toggleTaskDone(t) },
-                            onClick = { nav.navigate("taskEdit/${t.id}") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        Box {
-                            IconButton(onClick = { menuFor = t }) {
-                                Icon(Icons.Filled.MoreVert, contentDescription = "گزینه‌ها")
-                            }
-                            if (menuFor?.id == t.id) {
-                                TaskMenu(
-                                    task = t,
-                                    onDismiss = { menuFor = null },
-                                    vm = vm
-                                )
-                            }
-                        }
-                    }
-                    if (overdue) {
-                        Text(
-                            "★ عقب‌افتاده",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.padding(start = 56.dp)
-                        )
-                    }
-                }
-                Spacer(Modifier.height(80.dp))
-            }
-        }
-    }
+    fun setDone(task: TaskEntity, done: Boolean) =
+        viewModelScope.launch { DataRepository.setTaskDone(task, done) }
+
+    fun delete(task: TaskEntity) = viewModelScope.launch { DataRepository.deleteTask(task) }
 }
 
 @Composable
-private fun TaskMenu(task: Task, vm: AppViewModel, onDismiss: () -> Unit) {
-    DropdownMenu(expanded = true, onDismissRequest = onDismiss) {
-        if (task.deleted) {
-            DropdownMenuItem(
-                text = { Text("بازیابی") },
-                leadingIcon = { Icon(Icons.Filled.Unarchive, null) },
-                onClick = { vm.restoreTask(task); onDismiss() }
-            )
-            DropdownMenuItem(
-                text = { Text("حذف همیشگی") },
-                leadingIcon = { Icon(Icons.Filled.Delete, null) },
-                onClick = { vm.purgeTask(task); onDismiss() }
-            )
-        } else if (task.archived) {
-            DropdownMenuItem(
-                text = { Text("خروج از بایگانی") },
-                leadingIcon = { Icon(Icons.Filled.Unarchive, null) },
-                onClick = { vm.unarchiveTask(task); onDismiss() }
-            )
-            DropdownMenuItem(
-                text = { Text("انتقال به سطل بازیافت") },
-                leadingIcon = { Icon(Icons.Filled.DeleteOutline, null) },
-                onClick = { vm.trashTask(task); onDismiss() }
-            )
-        } else {
-            DropdownMenuItem(
-                text = { Text("بایگانی") },
-                leadingIcon = { Icon(Icons.Filled.Archive, null) },
-                onClick = { vm.archiveTask(task); onDismiss() }
-            )
-            DropdownMenuItem(
-                text = { Text("انتقال به سطل بازیافت") },
-                leadingIcon = { Icon(Icons.Filled.DeleteOutline, null) },
-                onClick = { vm.trashTask(task); onDismiss() }
-            )
+fun TasksScreen() {
+    val vm: TasksViewModel = viewModel()
+    val active by vm.active.collectAsState()
+    val done by vm.done.collectAsState()
+
+    var showAdd by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<TaskEntity?>(null) }
+    var deleting by remember { mutableStateOf<TaskEntity?>(null) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            item { SectionTitle(stringResource(R.string.tasks_active)) }
+            if (active.isEmpty() && done.isEmpty()) {
+                item { EmptyState(stringResource(R.string.tasks_empty)) }
+            } else if (active.isEmpty()) {
+                item { EmptyState(stringResource(R.string.tasks_empty)) }
+            } else {
+                items(active, key = { it.id }) { task ->
+                    TaskRow(
+                        task = task,
+                        onToggle = { d -> vm.setDone(task, d) },
+                        onDelete = { deleting = task },
+                        onEdit = { editing = task }
+                    )
+                }
+            }
+            if (done.isNotEmpty()) {
+                item { SectionTitle(stringResource(R.string.tasks_done)) }
+                items(done, key = { it.id }) { task ->
+                    TaskRow(
+                        task = task,
+                        onToggle = { d -> vm.setDone(task, d) },
+                        onDelete = { deleting = task },
+                        onEdit = { editing = task }
+                    )
+                }
+            }
         }
+
+        ExtendedFloatingActionButton(
+            onClick = { showAdd = true },
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(16.dp),
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ) {
+            Icon(Icons.Filled.Add, contentDescription = null)
+            Text(stringResource(R.string.add_task))
+        }
+    }
+
+    if (showAdd) {
+        AddEditTaskDialog(
+            initial = null,
+            onDismiss = { showAdd = false },
+            onSave = { title, date, time, reminder ->
+                vm.add(title, date, time, reminder)
+                showAdd = false
+            }
+        )
+    }
+
+    editing?.let { task ->
+        AddEditTaskDialog(
+            initial = task,
+            onDismiss = { editing = null },
+            onSave = { title, date, time, reminder ->
+                vm.update(
+                    task.copy(
+                        title = title,
+                        dueDate = date?.toString(),
+                        dueTime = time?.toString(),
+                        reminderAt = if (reminder && date != null && time != null) {
+                            date.atTime(time).atZone(ZoneId.systemDefault())
+                                .toInstant().toEpochMilli()
+                        } else null
+                    )
+                )
+                editing = null
+            }
+        )
+    }
+
+    deleting?.let { task ->
+        ConfirmDialog(
+            title = stringResource(R.string.delete_confirm_title),
+            text = stringResource(R.string.delete_confirm_text),
+            confirmLabel = stringResource(R.string.delete),
+            onConfirm = {
+                vm.delete(task)
+                deleting = null
+            },
+            onDismiss = { deleting = null }
+        )
     }
 }

@@ -1,3 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">روزینو</string>
+
+    <!-- ناوبری -->
+    <string name="tab_today">امروز</string>
+    <string name="tab_tasks">کارها</string>
+    <string name="tab_notes">یادداشت‌ها</string>
+    <string name="tab_calendar">تقویم</string>
+    <string name="tab_settings">تنظیمات</string>
+    <string name="search_title">جست‌وجو</string>
+
+    <!-- امروز من -->
+    <string name="greeting_morning">صبح بخیر</string>
+    <string name="greeting_afternoon">بعدازظهر بخیر</string>
+    <string name="greeting_evening">عصر بخیر</string>
+    <string name="greeting_night">شب بخیر</string>
+    <string name="today_tasks_title">کارهای امروز</string>
+    <string name="today_notes_title">یادداشت‌های اخیر</string>
+    <string name="today_empty">امروز کاری ثبت نشده — از نوار بالا سریع بنویسید</string>
+    <string name="notes_recent_empty">هنوز یادداشتی ندارید</string>
+
+    <!-- ثبت سریع -->
+    <string name="quick_hint">مثلاً: فردا ساعت ۱۸ تماس با علی</string>
+    <string name="quick_hint_note">یادداشت امروزتان را همین‌جا بنویسید…</string>
+    <string name="quick_type_task">کار</string>
+    <string name="quick_type_note">یادداشت</string>
+    <string name="quick_add">ثبت</string>
+    <string name="quick_will_remind">یادآوری ساعت %1$s ثبت می‌شود</string>
+    <string name="quick_will_remind_day">یادآوری %1$s ساعت %2$s ثبت می‌شود</string>
+    <string name="quick_saved">ثبت شد</string>
+
+    <!-- کارها -->
+    <string name="tasks_active">انجام‌نشده</string>
+    <string name="tasks_done">انجام‌شده</string>
+    <string name="tasks_empty">هنوز کاری ثبت نشده — از دکمه ＋ بسازید</string>
+    <string name="add_task">کار جدید</string>
+    <string name="edit_task">ویرایش کار</string>
+    <string name="task_title">عنوان کار</string>
+    <string name="pick_date">تاریخ</string>
+    <string name="pick_time">ساعت</string>
+    <string name="set_reminder">یادآوری</string>
+    <string name="reminder_will_schedule">یادآوری در زمان انتخاب‌شده ثبت می‌شود</string>
+    <string name="no_date">بدون تاریخ</string>
+
+    <!-- یادداشت‌ها -->
+    <string name="notes_empty">هنوز یادداشتی ندارید</string>
+    <string name="note_title">عنوان (اختیاری)</string>
+    <string name="note_content">متن یادداشت</string>
+    <string name="add_note">یادداشت جدید</string>
+    <string name="edit_note">ویرایش یادداشت</string>
+    <string name="share">اشتراک‌گذاری</string>
+    <string name="share_via">اشتراک‌گذاری از طریق</string>
+
+    <!-- مشترک -->
+    <string name="save">ذخیره</string>
+    <string name="cancel">انصراف</string>
+    <string name="delete">حذف</string>
+    <string name="delete_confirm_title">حذف شود؟</string>
+    <string name="delete_confirm_text">این مورد برای همیشه حذف می‌شود.</string>
+    <string name="ok">باشه</string>
+    <string name="back">بازگشت</string>
+    <string name="next">بعدی</string>
+    <string name="previous">قبلی</string>
+
+    <!-- جست‌وجو -->
+    <string name="search_hint">چیزی برای جست‌وجو بنویسید…</string>
+    <string name="search_min_hint">برای جست‌وجو حداقل دو حرف بنویسید</string>
+    <string name="search_empty">نتیجه‌ای پیدا نشد</string>
+    <string name="search_badge_task">کار</string>
+    <string name="search_badge_note">یادداشت</string>
+    <string name="search_normalization_info">جست‌وجو با نرمال‌سازی حروف (ی/ي، ك/ک، نیم‌فاصله و اعداد) انجام می‌شود</string>
+    <string name="search_results_count">%1$d نتیجه پیدا شد</string>
+
+    <!-- تقویم -->
+    <string name="calendar_today">برگشت به امروز</string>
+    <string name="calendar_day_items">موارد این روز</string>
+    <string name="calendar_no_items">این روز موردی ندارد</string>
+
+    <!-- پشتیبان‌گیری -->
+    <string name="backup_title">پشتیبان‌گیری</string>
+    <string name="backup_export">ذخیره نسخه پشتیبان</string>
+    <string name="backup_import">بازیابی نسخه پشتیبان</string>
+    <string name="backup_note">فایل پشتیبان در حافظه‌ای که خودتان انتخاب می‌کنید ذخیره می‌شود؛ هیچ داده‌ای جایی ارسال نمی‌شود.</string>
+    <string name="backup_saved">نسخه پشتیبان ذخیره شد</string>
+    <string name="backup_invalid">فایل پشتیبان معتبر نیست</string>
+    <string name="restore_confirm_title">بازیابی نسخه پشتیبان</string>
+    <string name="restore_confirm_text">%1$d کار و %2$d یادداشت بازیابی شود؟ داده‌های فعلی جایگزین می‌شوند.</string>
+    <string name="restored">بازیابی انجام شد</string>
+
+    <!-- تنظیمات -->
+    <string name="appearance_title">نمایش</string>
+    <string name="theme_system">هماهنگ با سیستم</string>
+    <string name="theme_light">روشن</string>
+    <string name="theme_dark">تیره</string>
+    <string name="reminders_section">یادآوری‌ها</string>
+    <string name="exact_alarm_ok">یادآوری دقیق روی این دستگاه فعال است.</string>
+    <string name="exact_alarm_missing">مجوز «ساعت دقیق» داده نشده است؛ یادآوری‌ها ممکن است تا چند دقیقه تأخیر داشته باشند.</string>
+    <string name="grant_exact_alarm">اعطای مجوز</string>
+    <string name="notifications_on">اعلان‌ها فعال است.</string>
+    <string name="notifications_off">اعلان‌ها خاموش است؛ برای دیدن یادآوری‌ها از تنظیمات اندروید فعالش کنید.</string>
+    <string name="about_section">درباره روزینو</string>
+    <string name="privacy_text">همه اطلاعات شما فقط روی همین گوشی ذخیره می‌شود؛ روزینو هیچ مجوز اینترنتی ندارد و داده‌ای به جایی ارسال نمی‌کند.</string>
+    <string name="limitations_text">یادآوری‌ها به ساعت سیستم اندروید وابسته‌اند؛ در بهینه‌سازی شدید باتری ممکن است با تأخیر برسند. پس از ری‌استارت گوشی، یادآوری‌های آینده دوباره زمان‌بندی می‌شوند.</string>
+    <string name="version_label">نسخه</string>
+    <string name="version_value">۰٫۱٫۰ (آزمایشی)</string>
+
+    <!-- اعلان‌ها -->
+    <string name="notif_channel_name">یادآوری‌ها</string>
+    <string name="notif_channel_desc">اعلان‌های یادآوری کارها</string>
+    <string name="notif_reminder_title">یادآوری روزینو</string>
 </resources>

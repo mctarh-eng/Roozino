@@ -1,20 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- روزینو عمداً هیچ مجوز اینترنتی ندارد: همه داده‌ها فقط روی دستگاه می‌ماند -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <application
         android:name=".RoozinoApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Roozino">
+        android:localeConfig="@xml/locales_config"
+        android:theme="@style/Theme.Roozino"
+        tools:targetApi="33">
 
         <activity
             android:name=".MainActivity"
@@ -27,18 +30,15 @@
         </activity>
 
         <receiver
-            android:name=".notif.ReminderReceiver"
+            android:name=".notify.ReminderReceiver"
             android:exported="false" />
 
         <receiver
-            android:name=".notif.ReminderActionReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name=".notif.BootReceiver"
+            android:name=".notify.SystemEventsReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>

@@ -1,34 +1,24 @@
 package com.roozino.app.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.NotificationImportant
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -38,272 +28,260 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.roozino.app.AppViewModel
-import com.roozino.app.QuickType
-import com.roozino.app.UiSettings
-import com.roozino.app.ui.components.EmptyHint
-import com.roozino.app.ui.components.MainScaffold
-import com.roozino.app.ui.components.QuickAddDialog
-import com.roozino.app.ui.components.SectionTitle
-import com.roozino.app.ui.components.TaskRow
-import com.roozino.app.util.Fa
-import com.roozino.app.util.TimeMath
-import com.roozino.app.jalali.JalaliCalendar
-import java.util.Calendar
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.roozino.app.R
+import com.roozino.app.data.DataRepository
+import com.roozino.app.data.NoteEntity
+import com.roozino.app.data.TaskEntity
+import com.roozino.app.domain.Jalali
+import com.roozino.app.domain.PersianText
+import com.roozino.app.ui.AddEditTaskDialog
+import com.roozino.app.ui.EmptyState
+import com.roozino.app.ui.NoteCard
+import com.roozino.app.ui.NoteEditorDialog
+import com.roozino.app.ui.SectionTitle
+import com.roozino.app.ui.TaskRow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalTime
+
+class TodayViewModel : ViewModel() {
+    private val today: LocalDate = LocalDate.now()
+
+    val dateText: String = Jalali.formatFull(today)
+
+    val tasks: StateFlow<List<TaskEntity>> =
+        DataRepository.tasksForDate(today.toString())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val recentNotes: StateFlow<List<NoteEntity>> =
+        DataRepository.recentNotes(3)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** ثبت سریع: یا کار (با تشخیص تاریخ/ساعت) یا یادداشت */
+    fun quickSend(raw: String, asNote: Boolean, onDone: () -> Unit) {
+        if (raw.isBlank()) return
+        viewModelScope.launch {
+            if (asNote) {
+                val firstLine = raw.trim().lineSequence().firstOrNull() ?: ""
+                DataRepository.addNote(title = firstLine.take(40), content = raw.trim())
+            } else {
+                val parsed = PersianText.parseQuickEntry(raw, LocalDate.now())
+                if (parsed.text.isNotBlank()) {
+                    DataRepository.addTask(
+                        title = parsed.text,
+                        date = parsed.date,
+                        time = parsed.time,
+                        withReminder = parsed.time != null
+                    )
+                }
+            }
+            onDone()
+        }
+    }
+
+    fun setDone(task: TaskEntity, done: Boolean) =
+        viewModelScope.launch { DataRepository.setTaskDone(task, done) }
+
+    fun deleteTask(task: TaskEntity) =
+        viewModelScope.launch { DataRepository.deleteTask(task) }
+
+    fun updateTask(task: TaskEntity) =
+        viewModelScope.launch { DataRepository.updateTask(task) }
+
+    fun deleteNote(note: NoteEntity) =
+        viewModelScope.launch { DataRepository.deleteNote(note) }
+
+    fun updateNote(note: NoteEntity) =
+        viewModelScope.launch { DataRepository.updateNote(note) }
+}
+
+fun greetingRes(hour: Int): Int = when (hour) {
+    in 5..11 -> R.string.greeting_morning
+    in 12..16 -> R.string.greeting_afternoon
+    in 17..19 -> R.string.greeting_evening
+    else -> R.string.greeting_night
+}
 
 @Composable
-fun TodayScreen(vm: AppViewModel, settings: UiSettings, nav: NavController) {
-    val tasks by vm.tasks.collectAsState()
-    val notes by vm.notes.collectAsState()
-    val reminders by vm.reminders.collectAsState()
-    var showQuick by remember { mutableStateOf(false) }
-    var quickType by remember { mutableStateOf(QuickType.TASK) }
+fun QuickEntryBar(modifier: Modifier = Modifier) {
+    val vm: TodayViewModel = viewModel()
+    var text by remember { mutableStateOf("") }
+    var asNote by remember { mutableStateOf(false) }
 
-    val now = remember { System.currentTimeMillis() }
-    val todayStart = remember { TimeMath.startOfDay(now) }
-    val persian = settings.persianDigits
+    val parsed = remember(text) {
+        if (asNote) null else PersianText.parseQuickEntry(text, LocalDate.now())
+    }
 
-    MainScaffold(
-        title = "امروز من",
-        selectedRoute = "today",
-        nav = nav,
-        topActions = {
-            IconButton(onClick = { nav.navigate("search") }) {
-                Icon(Icons.Filled.Search, contentDescription = "جست‌وجو")
-            }
-            IconButton(onClick = { nav.navigate("settings") }) {
-                Icon(Icons.Filled.Settings, contentDescription = "تنظیمات")
-            }
-        },
-        fab = {
-            ExtendedFloatingActionButton(
-                onClick = { quickType = QuickType.TASK; showQuick = true },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("ثبت سریع") }
-            )
-        }
-    ) { padding ->
-        val activeTasks = tasks.filter { !it.deleted && !it.archived }
-        val todayTasks = activeTasks.filter {
-            it.dueMillis != null && it.dueMillis!! >= todayStart && it.dueMillis!! < todayStart + TimeMath.DAY_MILLIS
-        }.sortedBy { it.dueMillis }
-        val overdue = activeTasks.filter {
-            it.dueMillis != null && it.dueMillis!! < todayStart && !it.isDone
-        }.sortedBy { it.dueMillis }
-        val doneToday = activeTasks.count { it.isDone && it.doneAt != null && it.doneAt!! >= todayStart }
-        val pendingToday = todayTasks.count { !it.isDone }
-        val upcomingReminders = reminders.filter { it.enabled && !it.deleted && it.timeMillis >= now }
-            .sortedBy { it.timeMillis }
-            .take(5)
-        val recentNotes = notes.filter { !it.deleted && !it.archived }
-            .sortedByDescending { it.updatedAt }
-            .take(3)
+    fun send() {
+        if (text.isNotBlank()) vm.quickSend(text, asNote) { text = "" }
+    }
 
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-        ) {
-            Spacer(Modifier.height(4.dp))
-
-            // کارت تاریخ و سلام
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(10.dp)) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    placeholder = {
+                        Text(
+                            stringResource(if (asNote) R.string.quick_hint_note else R.string.quick_hint),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { send() }),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(6.dp))
                 Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surface),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Filled.WbSunny,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Spacer(Modifier.size(12.dp))
-                    Column {
-                        Text(
-                            "${JalaliCalendar.weekdayName(now)}، ${Fa.date(now, persian)}",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        val cal = Calendar.getInstance().apply { timeInMillis = now }
-                        Text(
-                            Fa.greeting(cal.get(Calendar.HOUR_OF_DAY)) + " — روز خوبی داشته باشی",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            // آمار امروز
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp)
-            ) {
-                StatCard("انجام‌شده امروز", Fa.num(doneToday, persian), Modifier.weight(1f))
-                StatCard("باقی‌مانده امروز", Fa.num(pendingToday, persian), Modifier.weight(1f))
-                StatCard("عقب‌افتاده", Fa.num(overdue.size, persian), Modifier.weight(1f))
-            }
-
-            // میان‌برها
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp)
-            ) {
-                QuickButton("کار", Modifier.weight(1f)) { quickType = QuickType.TASK; showQuick = true }
-                QuickButton("یادداشت", Modifier.weight(1f)) { quickType = QuickType.NOTE; showQuick = true }
-                QuickButton("یادآوری", Modifier.weight(1f)) { quickType = QuickType.REMINDER; showQuick = true }
-            }
-
-            if (overdue.isNotEmpty()) {
-                SectionTitle("عقب‌افتاده")
-                overdue.forEach { t ->
-                    TaskRow(
-                        task = t,
-                        persian = persian,
-                        onToggle = { vm.toggleTaskDone(t) },
-                        onClick = { nav.navigate("taskEdit/${t.id}") }
+                    FilterChip(
+                        selected = !asNote,
+                        onClick = { asNote = false },
+                        label = { Text(stringResource(R.string.quick_type_task)) }
                     )
-                }
-            }
-
-            SectionTitle("کارهای امروز")
-            if (todayTasks.isEmpty()) {
-                EmptyHint("برای امروز کاری ثبت نشده — با دکمه بالا اضافه کن.")
-            } else {
-                todayTasks.forEach { t ->
-                    TaskRow(
-                        task = t,
-                        persian = persian,
-                        onToggle = { if (t.isDone) vm.reopenTask(t) else vm.toggleTaskDone(t) },
-                        onClick = { nav.navigate("taskEdit/${t.id}") }
+                    FilterChip(
+                        selected = asNote,
+                        onClick = { asNote = true },
+                        label = { Text(stringResource(R.string.quick_type_note)) }
                     )
-                }
-            }
-
-            SectionTitle("یادآوری‌های پیش‌رو")
-            if (upcomingReminders.isEmpty()) {
-                EmptyHint("یادآوری فعالی نداری.")
-            } else {
-                upcomingReminders.forEach { r ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { nav.navigate("reminders") }
-                            .padding(vertical = 6.dp)
-                    ) {
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = { send() }, enabled = text.isNotBlank()) {
                         Icon(
-                            Icons.Filled.Alarm,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                        Spacer(Modifier.size(10.dp))
-                        Text(r.title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                        Text(
-                            if (Fa.relativeDay(r.timeMillis, persian) == "امروز")
-                                Fa.time(r.timeMillis, persian)
-                            else Fa.dateTime(r.timeMillis, persian),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            Icons.AutoMirrored.Filled.Send,
+                            contentDescription = stringResource(R.string.quick_add)
                         )
                     }
                 }
-            }
-
-            SectionTitle("یادداشت‌های اخیر")
-            if (recentNotes.isEmpty()) {
-                EmptyHint("هنوز یادداشتی ننوشته‌ای.")
-            } else {
-                recentNotes.forEach { n ->
-                    Card(
-                        onClick = { nav.navigate("noteEdit/${n.id}") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Column(Modifier.padding(12.dp)) {
-                            Text(
-                                n.title.ifBlank { "بی‌عنوان" },
-                                style = MaterialTheme.typography.titleSmall
+                if (parsed != null && parsed.time != null) {
+                    Text(
+                        text = if (parsed.date != null && parsed.date != LocalDate.now()) {
+                            stringResource(
+                                R.string.quick_will_remind_day,
+                                Jalali.formatShort(parsed.date),
+                                Jalali.toPersianDigits(parsed.time.toString())
                             )
-                            if (n.body.isNotBlank()) {
-                                Text(
-                                    n.body,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 2
-                                )
-                            }
-                        }
-                    }
+                        } else {
+                            stringResource(
+                                R.string.quick_will_remind,
+                                Jalali.toPersianDigits(parsed.time.toString())
+                            )
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
-
-            Spacer(Modifier.height(24.dp))
-        }
-    }
-
-    if (showQuick) {
-        QuickAddDialog(vm = vm, settings = settings, initialType = quickType, onDismiss = { showQuick = false })
-    }
-}
-
-@Composable
-private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
-    Card(modifier = modifier) {
-        Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(value, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
-            Text(
-                label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
 
 @Composable
-private fun QuickButton(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        modifier = modifier
+fun TodayScreen() {
+    val vm: TodayViewModel = viewModel()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val tasks by vm.tasks.collectAsState()
+    val notes by vm.recentNotes.collectAsState()
+
+    var editingTask by remember { mutableStateOf<TaskEntity?>(null) }
+    var editingNote by remember { mutableStateOf<NoteEntity?>(null) }
+
+    val greeting = stringResource(greetingRes(LocalTime.now().hour))
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(vertical = 10.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Filled.NotificationImportant,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.size(6.dp))
-            Text(label, style = MaterialTheme.typography.labelLarge)
+        item {
+            Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Text(
+                    greeting,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    vm.dateText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.End
+                )
+            }
         }
+        item { QuickEntryBar() }
+
+        item { SectionTitle(stringResource(R.string.today_tasks_title)) }
+        if (tasks.isEmpty()) {
+            item { EmptyState(stringResource(R.string.today_empty)) }
+        } else {
+            items(tasks, key = { it.id }) { task ->
+                TaskRow(
+                    task = task,
+                    onToggle = { done -> vm.setDone(task, done) },
+                    onDelete = { vm.deleteTask(task) },
+                    onEdit = { editingTask = task }
+                )
+            }
+        }
+
+        item { SectionTitle(stringResource(R.string.today_notes_title)) }
+        if (notes.isEmpty()) {
+            item { EmptyState(stringResource(R.string.notes_recent_empty)) }
+        } else {
+            items(notes, key = { it.id }) { note ->
+                NoteCard(
+                    note = note,
+                    onClick = { editingNote = note },
+                    onDelete = { vm.deleteNote(note) },
+                    onShare = { shareNoteText(context, note.title, note.content) }
+                )
+            }
+        }
+    }
+
+    editingTask?.let { task ->
+        AddEditTaskDialog(
+            initial = task,
+            onDismiss = { editingTask = null },
+            onSave = { title, date, time, reminder ->
+                vm.updateTask(
+                    task.copy(
+                        title = title,
+                        dueDate = date?.toString(),
+                        dueTime = time?.toString(),
+                        reminderAt = if (reminder && date != null && time != null) {
+                            date.atTime(time).atZone(java.time.ZoneId.systemDefault())
+                                .toInstant().toEpochMilli()
+                        } else null
+                    )
+                )
+                editingTask = null
+            }
+        )
+    }
+
+    editingNote?.let { note ->
+        NoteEditorDialog(
+            initial = note,
+            onDismiss = { editingNote = null },
+            onSave = { title, content ->
+                vm.updateNote(note.copy(title = title, content = content))
+                editingNote = null
+            }
+        )
     }
 }

@@ -1,15 +1,13 @@
-name: Build Roozino APK
+name: Build APK
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
+    name: Build Debug APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,38 +18,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
-      - name: Accept Android SDK licenses
-        run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
-
-      - name: Build debug APK
+      - name: Build Debug APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
-
-      - name: Prepare APK file
-        run: |
-          cp app/build/outputs/apk/debug/app-debug.apk roozino-v0.1.0-alpha.apk
-          ls -la roozino-v0.1.0-alpha.apk
+          ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: roozino-debug-apk
-          path: roozino-v0.1.0-alpha.apk
-
-      - name: Create GitHub Release with APK
-        if: github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v0.1.0-alpha-${{ github.run_number }}
-          name: روزینو ۰.۱.۰ آزمایشی — build ${{ github.run_number }}
-          body: |
-            **نخستین نسخه آزمایشی اندروید روزینو**
-            - فایل APK را دانلود و روی گوشی نصب کنید (نیاز به فعال‌کردن «نصب از منابع ناشناس» دارد)
-            - نسخه دیباگ است و برای تست شخصی مناسب؛ امضای نهایی برای بازار/مایکت بعداً انجام می‌شود
-          files: roozino-v0.1.0-alpha.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: Roozino-debug-APK
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 30
