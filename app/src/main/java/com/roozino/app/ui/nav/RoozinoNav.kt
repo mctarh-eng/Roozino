@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -36,6 +37,7 @@ import com.roozino.app.ui.screens.WelcomeScreen
 @Composable
 fun RoozinoNav(vm: AppViewModel, settings: UiSettings) {
     val navController = rememberNavController()
+    val context = LocalContext.current
     val backStack by navController.currentBackStackEntryAsState()
     val route = backStack?.destination?.route ?: "today"
 
@@ -50,7 +52,6 @@ fun RoozinoNav(vm: AppViewModel, settings: UiSettings) {
     LaunchedEffect(settings.welcomeDone) {
         if (settings.welcomeDone && !notifRequested && Build.VERSION.SDK_INT >= 33) {
             notifRequested = true
-            val context = navController.context
             if (ContextCompat.checkSelfPermission(
                     context, Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
